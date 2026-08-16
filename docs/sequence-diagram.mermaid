@@ -1,0 +1,89 @@
+sequenceDiagram
+    autonumber
+    actor U as 用户
+    participant P as EditorPage
+    participant S as useEditorStore
+    participant D as PdfDocument
+    participant O as PageOverlay
+    participant E as PdfExporter
+    participant F as FileAccess
+
+    U->>P: 选择/拖入 PDF
+    P->>F: openPdf()
+    F-->>P: FileHandle
+    P->>D: load(handle)
+    D-->>S: 写入 PdfDocumentState
+    P->>D: renderPage(i, scale)
+    D-->>O: canvas + textLayer
+    U->>P: 选择工具（高亮/文字/形状/签名）
+    P->>S: setTool(tool)
+    U->>O: 拖拽绘制元素 / 点击文本进入编辑气泡
+    O->>S: addElement / replaceText → stack.push(cmd)
+    S-->>O: 触发重渲染（实时预览 E7）
+    U->>P: 撤销 / 重做
+    P->>S: stack.undo() / stack.redo()
+    U->>P: 页面插入/删除/重排（拖拽缩略图）
+    P->>E: insertPage / deletePage / reorderPages
+    U->>P: 导出
+    P->>E: saveEdited(state, elements, config)
+    E->>D: 取原页字节/文本层（背景采样）
+    E->>E: copyPages + 遮盖原文 + 绘制叠加层（Q3 保真）
+    E->>F: saveFile(bytes, fileName)
+    F-->>U: 下载 / 保存对话框
+
+sequenceDiagram
+    autonumber
+    actor U2 as 用户
+    participant P2 as PdfToImagePanel
+    participant S2 as useConvertStore
+    participant C2 as PdfToImageConverter
+    participant D2 as PdfDocument
+    participant F2 as FileAccess
+
+    U2->>P2: 加载 PDF + 设置（格式/DPI/页范围）
+    P2->>S2: startTask({kind:'pdf-to-image'})
+    U2->>P2: 点击开始转换
+    P2->>C2: convert(doc, options, onProgress)
+    loop 每个页面
+        C2->>D2: renderPage(i, scale = dpi/72 * scale)
+        D2-->>C2: canvas
+        C2->>C2: 白底（JPG）→ canvas.toBlob(format, quality)
+        C2-->>S2: updateProgress(done, failed)
+        alt 用户取消
+            C2->>C2: 检查 cancelRequested → 中断循环
+            C2-->>S2: status='cancelled'
+        end
+    end
+    S2-->>P2: 结果网格预览（缩略图）
+    U2->>P2: 单张下载
+    P2->>F2: saveFile(blob, 'page-001.png')
+    U2->>P2: 打包下载全部
+    P2->>C2: packZip(results)
+    C2-->>P2: zipBlob
+    P2->>F2: saveFile(zipBlob, 'pdf-images.zip')
+
+sequenceDiagram
+    autonumber
+    actor U3 as 用户
+    participant P3 as ImageToPdfPanel
+    participant S3 as useConvertStore
+    participant C3 as ImageToPdfConverter
+    participant E3 as PdfExporter
+    participant F3 as FileAccess
+
+    U3->>P3: 多选/拖入图片（PNG/JPG/GIF/BMP）
+    P3->>P3: 解码生成缩略图（记录尺寸/方向；损坏文件标错不中断）
+    U3->>P3: 拖拽排序 / 旋转 / 删除
+    P3->>S3: 更新图片列表
+    U3->>P3: 设置页面尺寸/边距/缩放
+    U3->>P3: 点击生成 PDF
+    P3->>C3: convert(items, options, onProgress)
+    loop 每张图片
+        C3->>C3: 解码 → 转 RGB/RGBA 位图（GIF/BMP 统一转 PNG）
+        C3->>E3: addPage + embedPng/embedJpg + drawImage（含边距/缩放/旋转）
+        C3-->>S3: updateProgress(done)
+    end
+    C3-->>P3: pdfBlob
+    P3->>P3: 生成预览 URL
+    U3->>P3: 预览 → 下载
+    P3->>F3: saveFile(pdfBlob, 'images.pdf')

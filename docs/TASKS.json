@@ -1,0 +1,149 @@
+{
+  "project": "pdf_editor",
+  "generatedBy": "software-architect",
+  "date": "2026-02-10",
+  "prd": "docs/PRD.md",
+  "architecture": "docs/ARCHITECTURE.md",
+  "notes": "T03 与 T04 相互独立，可并行开发；均只依赖 T01+T02。T05 为最终集成。",
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "项目基础设施与共享内核底座",
+      "priority": "P0",
+      "dependencies": [],
+      "files": [
+        "index.html",
+        "package.json",
+        "electron.vite.config.ts",
+        "vite.config.ts",
+        "tsconfig.json",
+        "tailwind.config.ts",
+        "postcss.config.js",
+        "vitest.config.ts",
+        ".gitignore",
+        "docs/ARCHITECTURE.md",
+        "docs/TASKS.json",
+        "docs/class-diagram.mermaid",
+        "docs/sequence-diagram.mermaid",
+        "electron/main/index.ts",
+        "electron/preload/index.ts",
+        "electron/shared/ipc.ts",
+        "src/main.tsx",
+        "src/App.tsx",
+        "src/index.css",
+        "src/vite-env.d.ts",
+        "src/core/types.ts",
+        "src/core/geometry.ts",
+        "src/core/utils.ts",
+        "src/core/history.ts",
+        "src/core/fileAccess.ts",
+        "src/components/common/ui.tsx",
+        "src/store/useUiStore.ts",
+        "tests/setup.ts",
+        "tests/core/history.test.ts"
+      ],
+      "description": "搭起双端可运行骨架：Vite + electron-vite + Tailwind + Vitest 配置；Electron 主进程/preload/IPC 壳；领域类型、坐标几何、命令栈（撤销/重做）、FileAccess 平台抽象（Web/Electron 双实现 + 工厂）；公共 UI 组件（Button/Input/Modal/Toast/Progress/EmptyState）与 useUiStore。",
+      "acceptance": [
+        "npm run dev 可启动 Web 端应用壳",
+        "npm run dev:electron 可打开 Electron 窗口",
+        "tests/core/history.test.ts 通过（命令栈 ≥20 步）",
+        "Toast/Modal 组件可调用",
+        "FileAccess 工厂按平台返回 WebFileAccess / ElectronFileAccess"
+      ]
+    },
+    {
+      "id": "T02",
+      "title": "PDF 内核与状态（加载/渲染/页面操作/叠加导出）",
+      "priority": "P0",
+      "dependencies": ["T01"],
+      "files": [
+        "src/core/pdf/PdfDocument.ts",
+        "src/core/pdf/PdfExporter.ts",
+        "src/store/useEditorStore.ts",
+        "src/hooks/usePdf.ts",
+        "src/assets/fonts/NotoSansSC-Regular.ttf",
+        "tests/core/pdf-kernel.test.ts"
+      ],
+      "description": "pdf.js 封装：加载 PDF、渲染 canvas + 文本层、缩略图；pdf-lib 封装：copyPages 插入/删除/重排、叠加导出（背景遮盖原文 + 文本/高亮/形状/图片/签名绘制）、中文字体嵌入；useEditorStore 管理文档状态/编辑元素/工具/命令栈；usePdf 提供加载与渲染 hook。若中文字体资源无法获取，先实现 Helvetica 回退并在导出中文时提示（不阻塞）。",
+      "acceptance": [
+        "可加载 PDF 并渲染首页 canvas + 文本层",
+        "copyPages 插入/删除/重排页面正确（单测覆盖）",
+        "导出 PDF 可被阅读器打开，未编辑文本保持可搜索/可选中（AC-E8/Q3）",
+        "叠加绘制（矩形/文本/图片/高亮）导出位置与大小正确",
+        "中文字体嵌入可用或降级提示明确"
+      ]
+    },
+    {
+      "id": "T03",
+      "title": "PDF 在线编辑 UI（画布/覆盖层/工具栏/签名/属性）",
+      "priority": "P0",
+      "dependencies": ["T01", "T02"],
+      "files": [
+        "src/hooks/useDrawing.ts",
+        "src/components/editor/EditorCanvas.tsx",
+        "src/components/editor/PageOverlay.tsx",
+        "src/components/editor/EditorToolbar.tsx",
+        "src/pages/EditorPage.tsx",
+        "tests/core/editor.test.ts"
+      ],
+      "description": "编辑工作区全部 UI：中央画布 + 缩放 + 左侧缩略图栏（拖拽重排）、覆盖层元素渲染与命中/选中、文本编辑气泡（替换文本）、工具栏（选择/文本/高亮/批注/形状/图片/签名）、属性面板（颜色/字号/线宽）、签名对话框（鼠标/触控绘制 + 图片导入）、撤销/重做入口、实时预览。",
+      "acceptance": [
+        "AC-E1：多页浏览 + 缩略图正确",
+        "AC-E2：文本编辑即时更新，导出包含修改",
+        "AC-E3：批注与多色高亮，导出保留",
+        "AC-E4：插入/删除/拖拽重排页面，导出页序正确",
+        "AC-E5：图片/形状/签名导出位置大小正确",
+        "AC-E6：撤销/重做 ≥20 步",
+        "AC-E7：实时预览无保存割裂感"
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "转换功能：PDF 转图片 + 图片转 PDF",
+      "priority": "P0",
+      "dependencies": ["T01", "T02"],
+      "files": [
+        "src/core/convert/PdfToImage.ts",
+        "src/core/convert/ImageToPdf.ts",
+        "src/store/useConvertStore.ts",
+        "src/components/converter/PdfToImagePanel.tsx",
+        "src/components/converter/ImageToPdfPanel.tsx",
+        "src/pages/ConvertPages.tsx",
+        "tests/core/convert.test.ts"
+      ],
+      "description": "PDF→图片：单页/全部转 PNG/JPG、DPI/分辨率/尺寸设置、页范围、进度/取消、单张下载、JSZip 批量打包；图片→PDF：PNG/JPG/GIF/BMP 多选/拖拽上传、排序/旋转/删除、A4/Letter/自定义页面尺寸/边距/缩放、进度与错误隔离（损坏文件不影响其他）。",
+      "acceptance": [
+        "AC-C1~C4：转图格式/DPI/尺寸生效（±2%），预览可下载，ZIP 页序正确",
+        "AC-C5：进度显示可取消，失败页面可重试",
+        "AC-C6：100 页内转换成功率 ≥99%（本地）",
+        "AC-I1~I3：多格式上传、拖拽排序生效",
+        "AC-I4：页面尺寸/边距/缩放版式符合设定",
+        "AC-I5：进度提示 + 损坏文件明确报错且不中断"
+      ]
+    },
+    {
+      "id": "T05",
+      "title": "集成与打磨（首页/帮助/响应式/桌面联调/打包）",
+      "priority": "P0",
+      "dependencies": ["T03", "T04"],
+      "files": [
+        "src/pages/HomePage.tsx",
+        "src/pages/HelpPage.tsx",
+        "src/App.tsx",
+        "src/index.css",
+        "electron/main/index.ts",
+        "electron/preload/index.ts",
+        "README.md"
+      ],
+      "description": "首页三功能入口卡片；帮助中心（三步上手引导）；App 路由与顶栏/布局完善；响应式细节（375/768/1280）；Electron 联调（文件对话框保存/打开、菜单、断网可用验证）；npm run build:win 打包验证；README 收尾。",
+      "acceptance": [
+        "AC-G1：375/768/1280 布局正确可操作",
+        "AC-G2：DevTools Network 无外部请求",
+        "AC-G3：桌面端断网三大功能可用",
+        "AC-G4：错误场景有明确文案与重试/返回路径",
+        "AC-G5：内置新手引导与帮助文档",
+        "npm run build:win 产出 Windows 安装包/便携包"
+      ]
+    }
+  ]
+}

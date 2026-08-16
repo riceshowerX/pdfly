@@ -1,0 +1,126 @@
+classDiagram
+    class FileHandle {
+        +name: string
+        +size: number
+        +type: string
+        +read() Promise~ArrayBuffer~
+        +save(bytes: ArrayBuffer, suggestedName: string) Promise~void~
+    }
+    class FileAccess {
+        <<interface>>
+        +isDesktop: boolean
+        +openPdf() Promise~FileHandle|null~
+        +openImages(multiple: boolean) Promise~FileHandle[]~
+        +saveFile(bytes: ArrayBuffer, name: string) Promise~void~
+    }
+    class WebFileAccess
+    class ElectronFileAccess
+    FileAccess <|.. WebFileAccess
+    FileAccess <|.. ElectronFileAccess
+    ElectronFileAccess --> PdfApi : window.pdfApi
+
+    class PdfPageInfo {
+        +index: number
+        +widthPt: number
+        +heightPt: number
+        +rotation: number
+        +thumbnailUrl: string
+    }
+    class PdfDocumentState {
+        +id: string
+        +fileName: string
+        +originalBytes: ArrayBuffer
+        +pageCount: number
+        +pages: PdfPageInfo[]
+    }
+    class EditorElement {
+        +id: string
+        +type: ElementType
+        +pageIndex: number
+        +x: number
+        +y: number
+        +width: number
+        +height: number
+        +text: string
+        +fontSize: number
+        +color: string
+        +opacity: number
+        +coversOriginalText: boolean
+        +imageDataUrl: string
+        +noteText: string
+    }
+    class CommandStack {
+        -stack: Command[]
+        -index: number
+        +push(cmd: Command) void
+        +undo() void
+        +redo() void
+        +canUndo: boolean
+        +canRedo: boolean
+    }
+    class PdfDocument {
+        +load(handle: FileHandle) Promise~PdfDocumentState~
+        +renderPage(index: number, scale: number) Promise~HTMLCanvasElement~
+        +getTextLayer(index: number) Promise~TextItem[]
+        +renderThumbnail(index: number) Promise~string~
+        +dispose() void
+    }
+    class PdfExporter {
+        +saveEdited(state: PdfDocumentState, elements: EditorElement[], config: ExportConfig) Promise~void~
+        +insertPage(index: number) void
+        +deletePage(index: number) void
+        +reorderPages(from: number, to: number) void
+        +createPdfFromImages(items: ImageItem[], options: ImagePdfOptions) Promise~Blob~
+    }
+    class PdfToImageConverter {
+        +convert(doc: PdfDocument, options: PdfToImageOptions, onProgress: fn) Promise~ConvertResult[]~
+        +requestCancel() void
+        +packZip(results: ConvertResult[]) Promise~Blob~
+    }
+    class ImageToPdfConverter {
+        +convert(items: ImageItem[], options: ImagePdfOptions, onProgress: fn) Promise~Blob~
+    }
+    class ConvertTask {
+        +id: string
+        +kind: string
+        +status: TaskStatus
+        +total: number
+        +done: number
+        +failed: number
+        +cancelRequested: boolean
+        +results: ConvertResult[]
+    }
+    class useEditorStore {
+        +doc: PdfDocumentState
+        +elements: EditorElement[]
+        +tool: Tool
+        +selection: SelectionState
+        +stack: CommandStack
+        +addElement(el: EditorElement) void
+        +updateElement(id: string, patch: Partial~EditorElement~) void
+        +removeElement(id: string) void
+        +setTool(tool: Tool) void
+    }
+    class useConvertStore {
+        +tasks: Record~string, ConvertTask~
+        +startTask(task: ConvertTask) void
+        +updateProgress(id: string, done: number, failed: number) void
+        +cancelTask(id: string) void
+    }
+    class useUiStore {
+        +toasts: Toast[]
+        +modal: ModalState
+        +settings: AppSettings
+        +pushToast(toast: Toast) void
+        +openModal(modal: ModalState) void
+    }
+
+    PdfDocument --> FileHandle
+    PdfExporter --> FileAccess
+    PdfToImageConverter --> PdfDocument
+    PdfToImageConverter --> FileAccess
+    ImageToPdfConverter --> PdfExporter
+    useEditorStore --> PdfDocumentState
+    useEditorStore --> EditorElement
+    useEditorStore --> CommandStack
+    useConvertStore --> ConvertTask
