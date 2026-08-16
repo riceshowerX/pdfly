@@ -36,7 +36,7 @@ function ensureWorker(): void {
     .catch(() => {
       // 主线程 fake worker 回退；重置标志允许下次加载重试
       workerReady = false;
-      console.warn('[pdf-editor] pdf.js worker 加载失败，回退主线程渲染');
+      console.warn('[pdfly] pdf.js worker 加载失败，回退主线程渲染');
     });
 }
 
@@ -207,7 +207,7 @@ export class PdfDocument {
       await task.promise;
     } catch (err) {
       // 缩略图失败不阻断主流程，但给出诊断信息并返回空标记（调用方显示占位）
-      console.warn('[pdf-editor] 缩略图渲染失败', err);
+      console.warn('[pdfly] 缩略图渲染失败', err);
       return '';
     }
     const url = canvas.toDataURL('image/png');

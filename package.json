@@ -1,7 +1,7 @@
 {
-  "name": "pdf-editor",
+  "name": "pdfly",
   "version": "1.0.0",
-  "description": "本地优先、双端可用的 PDF 编辑器（PDF 编辑 / PDF 转图片 / 图片转 PDF）",
+  "description": "Pdfly：本地优先、双端可用的 PDF 编辑器（PDF 编辑 / PDF 转图片 / 图片转 PDF）",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {

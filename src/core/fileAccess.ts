@@ -88,7 +88,7 @@ export class WebFileAccess implements FileAccess {
     const file = files[0];
     if (isLargeFile(file.size)) {
       // 大文件仅提示风险，允许尝试（Q7）
-      console.warn(`[pdf-editor] 大文件（${file.size} 字节），Web 端可能影响性能`);
+      console.warn(`[pdfly] 大文件（${file.size} 字节），Web 端可能影响性能`);
     }
     return new WebFileHandle(file.name, file.size, file.type || 'application/pdf', file);
   }
@@ -122,7 +122,7 @@ export class ElectronFileHandle implements FileHandle {
   async save(bytes: ArrayBuffer, suggestedName: string): Promise<void> {
     const result = await this.api.saveFile(bytes, suggestedName || this.name);
     if (result.canceled) {
-      console.info('[pdf-editor] 用户取消保存');
+      console.info('[pdfly] 用户取消保存');
     }
   }
 }

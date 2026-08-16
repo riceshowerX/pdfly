@@ -348,7 +348,7 @@ export function PageOverlay({ pageIndex, originalIndex, widthPt, heightPt, scale
         ctx?.drawImage(c, 0, 0);
       })
       .catch((err) => {
-        if (!cancelled) console.warn('[pdf-editor] 页面渲染失败', err);
+        if (!cancelled) console.warn('[pdfly] 页面渲染失败', err);
       });
     return () => {
       cancelled = true;
@@ -364,7 +364,7 @@ export function PageOverlay({ pageIndex, originalIndex, widthPt, heightPt, scale
         if (!cancelled) textItemsRef.current = items;
       })
       .catch((err) => {
-        if (!cancelled) console.warn('[pdf-editor] 文本层加载失败', err);
+        if (!cancelled) console.warn('[pdfly] 文本层加载失败', err);
       });
     return () => {
       cancelled = true;
